@@ -1,0 +1,22 @@
+{
+  "name": "check_proxy",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon server"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.7.7",
+    "express": "^4.21.1",
+    "nodemon": "^3.1.7",
+    "proxy-agent": "^6.4.0",
+    "proxy-checker": "^1.0.0",
+    "socks-proxy-agent": "^8.0.4",
+    "ws": "^8.18.0"
+  }
+}

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proxy Checker</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f4f7fc;
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    label {
+      font-size: 16px;
+      color: #555;
+    }
+
+    textarea,
+    button {
+      padding: 10px;
+      margin: 10px 0;
+      width: 100%;
+      font-size: 14px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+
+    button {
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .result {
+      margin-top: 20px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      background-color: #f5f5f5;
+      padding: 15px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    .error {
+      color: red;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <h1>Proxy Checker</h1>
+
+    <label for="proxyInput">Enter Proxies (one per line):</label>
+    <textarea id="proxyInput" rows="10" placeholder="45.119.85.30:38825:vanchuong:vanchuong123"></textarea>
+
+    <button onclick="checkProxies()">Check Proxies</button>
+    <button onclick="downloadResult()">Download Result</button>
+    <!-- <button onclick="downloadByLocation()">Download By Location</button> -->
+
+    <div id="result" class="result"></div>
+  </div>
+
+  <script>
+    let resultText = '';
+    let groupedResults = {}; // Dùng để nhóm kết quả theo địa chỉ và nhà mạng
+
+    // Function to check all proxies
+    async function checkProxies() {
+      const proxyList = document.getElementById("proxyInput").value.split("\n").map(proxy => proxy.trim());
+      const resultDiv = document.getElementById("result");
+
+      // Clear previous results
+      resultDiv.innerHTML = "Checking...";
+
+      try {
+        resultText = '';  // Reset resultText
+
+        // Create promises for each proxy
+        const promises = proxyList.map(proxy => {
+          if (proxy) {
+            return fetch("/check-proxy", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({ proxy })
+            })
+              .then(res => res.json())
+              .then(result => {
+                if (result.error) {
+                  return null; // Return null if there's an error
+                }
+                // Group by location (place and ISP)
+                const locationKey = `${result.location} - ${result.isp}`;
+                if (!groupedResults[locationKey]) {
+                  groupedResults[locationKey] = [];
+                }
+                groupedResults[locationKey].push(`${proxy} => ${result.ip}`);
+                return `${result.result}\n\n`; // Return result for valid proxies
+              })
+              .catch(error => {
+                return null; // Return null if there's an error
+              });
+          }
+        });
+
+        // Wait for all promises to resolve
+        const results = await Promise.all(promises);
+
+        // Filter out null results (errors) and combine the valid results
+        const validResults = results.filter(result => result !== null).join('');
+
+        // If there are valid results, display them
+        if (validResults) {
+          resultText = validResults;
+          resultDiv.innerHTML = `<strong>Result:</strong><br>${resultText}`;
+        } else {
+          resultDiv.innerHTML = "<span class='error'>No valid proxies found.</span>";
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `<span class='error'>Error: ${error.message}</span>`;
+      }
+    }
+
+    function downloadResult() {
+      // Loại bỏ khoảng trắng thừa và đảm bảo mỗi kết quả chỉ cách nhau bằng 1 dòng
+      const cleanedResultText = resultText.trim().replace(/\n{2,}/g, '\n');  // Loại bỏ các dòng trống thừa
+
+      // Tạo blob từ chuỗi đã xử lý
+      const blob = new Blob([cleanedResultText], { type: 'text/plain' });
+
+      // Tạo liên kết để tải file về
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'proxy_results.txt';  // Đặt tên file khi tải về
+      link.click();  // Kích hoạt download
+    }
+
+    // Function to download the results grouped by location
+    function downloadByLocation() {
+      let groupedText = '';
+      
+      for (const location in groupedResults) {
+        groupedText += `${location}:\n`;
+        groupedResults[location].forEach(result => {
+          groupedText += `${result}\n`;
+        });
+        groupedText += '\n';
+      }
+
+      const blob = new Blob([groupedText], { type: 'text/plain' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'proxy_results_by_location.txt';
+      link.click();
+    }
+  </script>
+
+</body>
+
+</html>
