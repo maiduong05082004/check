@@ -5,7 +5,7 @@ const { HttpsProxyAgent } = require('https-proxy-agent');
 const fs = require("fs");
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 // Middleware để xử lý body request dạng JSON
 app.use(express.json());
@@ -40,7 +40,7 @@ app.post('/check-proxy', async (req, res) => {
 app.post('/check-proxies', async (req, res) => {
   const proxyList = req.body.proxies; // Danh sách proxy
   const promises = proxyList.map((proxy) => 
-    fetch('http://localhost:3000/check-proxy', {
+    fetch('/check-proxy', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -62,7 +62,7 @@ app.post('/check-proxies', async (req, res) => {
 app.post('/download-by-location', async (req, res) => {
   const proxyList = req.body.proxies; // Danh sách proxy
   const promises = proxyList.map((proxy) => 
-    fetch('http://localhost:3000/check-proxy', {
+    fetch('/check-proxy', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -107,5 +107,5 @@ app.post('/download-by-location', async (req, res) => {
 
 // Khởi động server tại cổng 3000
 app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+  console.log(`Server is running on ${port}`);
 });
